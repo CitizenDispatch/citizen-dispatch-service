@@ -23,7 +23,7 @@ s3.listObjectsV2(opts, function(err, data){
                 Key: key.Key
             }, function(getErr, getData) {
                 if (getErr) console.log("Object get error: " + getErr);
-                const newContent = getData.Body.toString('ascii').replace('REPLACE_API_ENDPOINT', 'WHATEVER_DUDE')
+                const newContent = getData.Body.toString('ascii').replace('REPLACE_API_ENDPOINT', process.env.API_ENDPOINT)
                 s3.putObject({
                     Body: newContent,
                     Bucket: destBucket,

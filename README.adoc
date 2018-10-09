@@ -1,4 +1,4 @@
-# Citizen Dispatch
+image::https://s3.amazonaws.com/citizen-dispatch-media/citizen-dispatch.png
 
 ## Getting Started
 
@@ -49,6 +49,12 @@ CitizenDispatch is built around 3 tenets:
 ### Serverless Architecture
 
 Serverless architecture is perfectly suited to this use case. The publicly hosted application will be idle for most of the year, but must rapidly scale during natural disasters. The application maintains little long-term state, keeping cost to a minimum and making it viable for support by a non-profit organization. Cognito makes user authentication simple and low-maintenance, SNS allows easy worldwide usage, and GraphQL in Lambda will encourage integration with 3rd party applications and data producers.
+
+image::https://s3.amazonaws.com/citizen-dispatch-media/architecture-authentication.png
+
+image::https://s3.amazonaws.com/citizen-dispatch-media/architecture-mission-control.png
+
+image::https://s3.amazonaws.com/citizen-dispatch-media/architecture-report-location.png
 
 ## Technical Notes
 

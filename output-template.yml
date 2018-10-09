@@ -1,9 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: "Citizen Dispatch - a platform for coordinating emergency response efforts\
-  \ among citizen volunteers.\n  \n"
+Description: 'Citizen Dispatch - a platform for coordinating emergency response efforts
+  among citizen volunteers.
+
+  '
 Outputs:
   CitizenDispatchApi:
-    Description: API Gateway endpoint URL for Prod stage for Hello World function
+    Description: API Gateway endpoint URL
     Value:
       Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/dev
   QueryFunction:
@@ -25,14 +27,19 @@ Resources:
   CopyWebsiteFunction:
     Environment:
       Variables:
+        API_ENDPOINT:
+          Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/dev
         TARGET_BUCKET:
           Ref: ClientS3BucketName
+    Events:
+      Schedule:
+        Rate: (1 minute)
     Policies:
       S3CrudPolicy:
         BucketName:
           Ref: ClientS3BucketName
     Properties:
-      CodeUri: s3://citizen-dispatch/bba54e092f69d0090c1d52d01bbb09ee
+      CodeUri: s3://citizen-dispatch/89618aea522e06800f7fb3ddc142aefa
       Handler: copyWebsiteBucket.handler
       Runtime: nodejs8.10
     Type: AWS::Serverless::Function
@@ -64,20 +71,9 @@ Resources:
       TableName:
         Fn::Sub: ${ResourcePrefix}-missions
     Type: AWS::DynamoDB::Table
-  PermissionForEventsToInvokeLambda:
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        Ref: CopyWebsiteFunction
-      Principal: events.amazonaws.com
-      SourceArn:
-        Fn::GetAtt:
-        - ScheduledRule
-        - Arn
-    Type: AWS::Lambda::Permission
   QueryFunction:
     Properties:
-      CodeUri: s3://citizen-dispatch/cd7e2cfd7ce53f051964da19eace7acf
+      CodeUri: s3://citizen-dispatch/039baaee84a901d36d8cdc9899fc7b66
       Events:
         Query:
           Properties:
@@ -89,7 +85,7 @@ Resources:
     Type: AWS::Serverless::Function
   ReportLocationFunction:
     Properties:
-      CodeUri: s3://citizen-dispatch/cd7e2cfd7ce53f051964da19eace7acf
+      CodeUri: s3://citizen-dispatch/039baaee84a901d36d8cdc9899fc7b66
       Events:
         Query:
           Properties:
@@ -113,18 +109,6 @@ Resources:
       TableName:
         Fn::Sub: ${ResourcePrefix}-requests
     Type: AWS::DynamoDB::Table
-  ScheduledRule:
-    Properties:
-      Description: ScheduledRule
-      ScheduleExpression: rate(2 minutes)
-      State: ENABLED
-      Targets:
-      - Arn:
-          Fn::GetAtt:
-          - CopyWebsiteFunction
-          - Arn
-        Id: CopyWebsiteFunctionId
-    Type: AWS::Events::Rule
   StaticSite:
     Properties:
       AccessControl: PublicRead
@@ -134,24 +118,6 @@ Resources:
         ErrorDocument: index.html
         IndexDocument: index.html
     Type: AWS::S3::Bucket
-  StaticSiteS3BucketPolicy:
-    Properties:
-      Bucket:
-        Ref: StaticSite
-      PolicyDocument:
-        Statement:
-        - Action:
-          - s3:GetObject
-          Effect: Allow
-          Principal: '*'
-          Resource:
-            Fn::Join:
-            - ''
-            - - 'arn:aws:s3:::'
-              - Ref: StaticSite
-              - /*
-          Sid: PublicReadGetObject
-    Type: AWS::S3::BucketPolicy
   TeamsTable:
     Properties:
       AttributeDefinitions:

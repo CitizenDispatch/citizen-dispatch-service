@@ -49,6 +49,7 @@ Resources:
     Environment:
       Variables:
         TARGET_BUCKET: !Ref ClientS3BucketName
+        API_ENDPOINT: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
     Properties:
       CodeUri: server/handlers
       Handler: copyWebsiteBucket.handler
@@ -59,7 +60,7 @@ Resources:
     Events:
       Schedule:
         Rate: (1 minute)
-        
+
   # Not allowed in SAR
   # SNSRole:
   #   Type: "AWS::IAM::Role"
@@ -252,7 +253,7 @@ Resources:
 Outputs:
 
     CitizenDispatchApi:
-      Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+      Description: "API Gateway endpoint URL"
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
 
     QueryFunction:
