@@ -1,0 +1,19 @@
+[
+  {
+    "id": "53c961b7-2d87-40a6-b264-38ee0d080440",
+    "dispatchId": "12345",
+    "firstName": "Stephanie",
+    "lastName": "Vincent",
+    "teamId": "12312389"
+  },
+  {
+    "id": "53c961b7-2d87-40a6-b264-38ee0d080441",
+    "firstName": "Wayne",
+    "lastName": "Dailey"
+  },
+  {
+    "id": "53c961b7-2d87-40a6-b264-38ee0d080442",
+    "firstName": "De'Licia",
+    "lastName": "Thomas"
+  }
+]

@@ -1,0 +1,228 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Citizen Dispatch - a platform for coordinating emergency response efforts\
+  \ among citizen volunteers.\n  \n"
+Outputs:
+  CitizenDispatchApi:
+    Description: API Gateway endpoint URL for Prod stage for Hello World function
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/dev
+  QueryFunction:
+    Description: GraphQL Query Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - QueryFunction
+      - Arn
+Parameters:
+  ClientS3BucketName:
+    Default: citizen-dispatch-sar
+    Description: The bucket name to serve the client web application from
+    Type: String
+  ResourcePrefix:
+    Default: citizen-dispatch-sar
+    Description: The prefix for all resources created by this template.
+    Type: String
+Resources:
+  CopyWebsiteFunction:
+    Environment:
+      Variables:
+        TARGET_BUCKET:
+          Ref: ClientS3BucketName
+    Policies:
+      S3CrudPolicy:
+        BucketName:
+          Ref: ClientS3BucketName
+    Properties:
+      CodeUri: s3://citizen-dispatch/bba54e092f69d0090c1d52d01bbb09ee
+      Handler: copyWebsiteBucket.handler
+      Runtime: nodejs8.10
+    Type: AWS::Serverless::Function
+  DispatchesTable:
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableName:
+        Fn::Sub: ${ResourcePrefix}-dispatches
+    Type: AWS::DynamoDB::Table
+  MissionsTable:
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableName:
+        Fn::Sub: ${ResourcePrefix}-missions
+    Type: AWS::DynamoDB::Table
+  PermissionForEventsToInvokeLambda:
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: CopyWebsiteFunction
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+        - ScheduledRule
+        - Arn
+    Type: AWS::Lambda::Permission
+  QueryFunction:
+    Properties:
+      CodeUri: s3://citizen-dispatch/cd7e2cfd7ce53f051964da19eace7acf
+      Events:
+        Query:
+          Properties:
+            Method: post
+            Path: /query
+          Type: Api
+      Handler: server/handlers/query.handler
+      Runtime: nodejs8.10
+    Type: AWS::Serverless::Function
+  ReportLocationFunction:
+    Properties:
+      CodeUri: s3://citizen-dispatch/cd7e2cfd7ce53f051964da19eace7acf
+      Events:
+        Query:
+          Properties:
+            Method: post
+            Path: /reportLocation
+          Type: Api
+      Handler: server/handlers/reportLocation.handler
+      Runtime: nodejs8.10
+    Type: AWS::Serverless::Function
+  RequestsTable:
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableName:
+        Fn::Sub: ${ResourcePrefix}-requests
+    Type: AWS::DynamoDB::Table
+  ScheduledRule:
+    Properties:
+      Description: ScheduledRule
+      ScheduleExpression: rate(2 minutes)
+      State: ENABLED
+      Targets:
+      - Arn:
+          Fn::GetAtt:
+          - CopyWebsiteFunction
+          - Arn
+        Id: CopyWebsiteFunctionId
+    Type: AWS::Events::Rule
+  StaticSite:
+    Properties:
+      AccessControl: PublicRead
+      BucketName:
+        Ref: ClientS3BucketName
+      WebsiteConfiguration:
+        ErrorDocument: index.html
+        IndexDocument: index.html
+    Type: AWS::S3::Bucket
+  StaticSiteS3BucketPolicy:
+    Properties:
+      Bucket:
+        Ref: StaticSite
+      PolicyDocument:
+        Statement:
+        - Action:
+          - s3:GetObject
+          Effect: Allow
+          Principal: '*'
+          Resource:
+            Fn::Join:
+            - ''
+            - - 'arn:aws:s3:::'
+              - Ref: StaticSite
+              - /*
+          Sid: PublicReadGetObject
+    Type: AWS::S3::BucketPolicy
+  TeamsTable:
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableName:
+        Fn::Sub: ${ResourcePrefix}-teams
+    Type: AWS::DynamoDB::Table
+  UserLocationsTable:
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      - AttributeName: timestamp
+        AttributeType: N
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      - AttributeName: timestamp
+        KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableName:
+        Fn::Sub: ${ResourcePrefix}-userLocations
+    Type: AWS::DynamoDB::Table
+  UserPool:
+    Properties:
+      DeviceConfiguration:
+        ChallengeRequiredOnNewDevice: true
+        DeviceOnlyRememberedOnUserPrompt: false
+      Schema:
+      - AttributeDataType: String
+        Mutable: true
+        Name: firstName
+      - AttributeDataType: String
+        Mutable: true
+        Name: lastName
+      SmsAuthenticationMessage: 'CitizenDispatch: {####}'
+      SmsVerificationMessage: 'CitizenDispatch: {####}'
+      UserPoolName:
+        Fn::Sub: ${ResourcePrefix}-user-pool
+      UsernameAttributes:
+      - phone_number
+    Type: AWS::Cognito::UserPool
+  UserPoolClient:
+    Properties:
+      ClientName:
+        Fn::Sub: ${ResourcePrefix}-app-client
+      GenerateSecret: false
+      UserPoolId:
+        Ref: UserPool
+    Type: AWS::Cognito::UserPoolClient
+  UsersTable:
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableName:
+        Fn::Sub: ${ResourcePrefix}-users
+    Type: AWS::DynamoDB::Table
+Transform: AWS::Serverless-2016-10-31

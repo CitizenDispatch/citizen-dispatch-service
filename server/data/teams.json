@@ -1,0 +1,11 @@
+[
+  {
+    "id": "12312389",
+    "name": "Airboat",
+    "status": "ready",
+    "transportationMode": "wheeled",
+    "requestTypes": ["medical", "landRescue"],
+    "leaderId": "53c961b7-2d87-40a6-b264-38ee0d080440",
+    "dispatchId": "12345"
+  }
+]

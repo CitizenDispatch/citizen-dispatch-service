@@ -1,0 +1,54 @@
+{
+  "name": "citizen-dispatch",
+  "version": "0.0.1",
+  "description": "Serverless Application for Citizen-led Disaster Relief Coordination",
+  "main": "index.js",
+  "scripts": {
+    "full-install": "echo 'Ensure java and serverless are installed' && npm install && cd client && npm install && sls dynamodb install",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "stack-local": "concurrently 'cd client && npm run local' 'serverless offline start --stage local'",
+    "kill": "concurrently --kill-others",
+    "deploy": "cd client && npx webpack -p && cd .. && serverless deploy"
+  },
+  "babel": {
+    "presets": [
+      "env",
+      "react",
+      "stage-2"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/CitizenDispatch/citizen-dispatch-service"
+  },
+  "keywords": [
+    "serverless",
+    "disaster-response",
+    "dynamodb",
+    "react",
+    "apollo",
+    "aws",
+    "lambda"
+  ],
+  "author": "citizendispatch",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/CitizenDispatch/citizen-dispatch-service"
+  },
+  "homepage": "https://github.com/CitizenDispatch/citizen-dispatch-service",
+  "dependencies": {
+    "aws-sdk": "^2.296.0",
+    "dynamodb-update-expression": "^0.1.21",
+    "geolib": "^2.0.24",
+    "graphql": "^0.13.2",
+    "graphql-fields": "^1.1.0",
+    "update-immutable": "^1.5.0",
+    "uuid": "^3.3.2"
+  },
+  "devDependencies": {
+    "concurrently": "^4.0.1",
+    "serverless-offline": "^3.25.9",
+    "serverless-s3-sync": "^1.6.1",
+    "serverless-dynamodb-local": "^0.2.30"
+  }
+}

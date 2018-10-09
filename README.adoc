@@ -1,0 +1,56 @@
+# Citizen Dispatch
+
+## Getting Started
+
+### Serverless Application Repository
+
+1. Deploy the application using the web console or the CLI. Ensure that you specify the parameter `ClientS3BucketName`, which must be globally unique. Optionally specify `ResourcePrefix` to prefix all created resources.
+2. Navigate to the S3 bucket hosted url created by the CloudFormation template to view the web application client
+
+### From Source
+
+```
+git clone https://github.com/CitizenDispatch/citizen-dispatch
+cd citizen-dispatch
+npm run full-install
+npm 
+```
+
+## Background
+
+On August 27th, 2017, as Hurricane Harvey battered Houston with record rainfall, Harris County Judge Ed Emmett issued a call for help to the public: anyone who was willing and able to assist in rescue operations should contact the county for instructions. The public dispatch facilities and emergency responders were already overwhelmed by demand.
+
+Good samaritans streamed in from all over. Among the most famous was the loosely organized "Cajun Navy" from Louisiana, with boats and heavy-duty trucks. With so many more people and resources, there should have been no more casualties from the storm.
+
+Unfortunately, the volunteers faced a huge problem: coordination and sharing of information. 911 dispatch centers were more and more overwhelmed, with backlogs of hundreds of calls and dispatchers working grueling, high-stress 16-hour days. 
+
+Wayne Dailey waited for days for medical rescue for his wife, Casey, who was experiencing serious complications from recent surgery. He called 911 several times over 3 days, begging for help, but his call was mislabeled and misrouted. By the time he flagged down a passing Cajun Navy boat, it was too late: Casey died on the long journey to the hospital. 
+
+Blocks away from their house, rescuers had been idle, looking for someone they could help. If they had known that Casey was so close, they could have saved her life.
+
+This was only one heartbreaking story from that storm. Dozens of lives were lost because of the impaired flow of information among emergency responders and citizen volunteers. 
+
+During Harvey, the Cajun Navy pioneered the use of mobile apps to coordinate their activities: walkie-talkie app Zello and location-sharing app Glympse. Rescue groups fielded calls for help on Facebook and Whatsapp, a modern improvement over the slow, pace-of-conversation-bound 911 system. While these tools served a vital purpose, a platform dedicated for peer-to-peer emergency response would have reduced the friction and data loss inherent in a high-stress environment, but where a single lost data point could mean the death of a family, as happened on Sassine Street.
+
+## Enter Citizen Dispatch
+
+Citizen Dispatch is a serverless web application tailor-made for sharing of information within and among ad-hoc rescue teams. Anyone can submit a call for help via the web application. Self-appointed dispatchers receive the call for help and can assign it to one of their rescue teams, according to their best judgement. Those rescue teams can view all the information about the call for help, and can contact the requester directly for more information. The requester can see a constantly-updated status of their rescue mission, reducing the burden on dispatchers when worried customers call for frequent updates.
+
+## Design
+
+### Tenets
+
+CitizenDispatch is built around 3 tenets:
+
+* Unopinionated: the system delegates all decision making to its users. It is made to fail open, to ensure that no vital information is lost.
+* Low Friction: it requires a minimal amount of information to get started and uses a simple, intuitive interface. In emergency situations, there can be no learning curve. Victims need to be able to call for help quickly, and untrained dispatchers and rescue teams need to be able to use the system without any training.
+* Better than the Alternative: there is no capability missing from Citizen Dispatch which is present in the current systems. It generally relies on cellular and internet connectivity, similar to walkie-talkie and location sharing apps, but can continue to function with only a phone connection, like the 911 system. Dispatchers can receive calls and input information similar to a 911 dispatch, distributing information to teams via internet or speech.
+
+### Serverless Architecture
+
+Serverless architecture is perfectly suited to this use case. The publicly hosted application will be idle for most of the year, but must rapidly scale during natural disasters. The application maintains little long-term state, keeping cost to a minimum and making it viable for support by a non-profit organization. Cognito makes user authentication simple and low-maintenance, SNS allows easy worldwide usage, and GraphQL in Lambda will encourage integration with 3rd party applications and data producers.
+
+## Technical Notes
+
+* In order to deploy a static site as part of AWS Serverless Application Repository, individually configured per-user, a Lambda function is required as part of the stack, which by a scheduled event copies the client from the public S3 bucket to your account and injects the correct endpoint. After the client files have been copied once, the Lambda and CloudWatch events may be manually deleted. Hopefully in the future, SAM/CF will support static website uploading in a more out-of-the-box manner.
+* Because the Serverless Application Repository restricts IAM policies to pre-approved set, the Cognito UserPool is not able to use SMS authentication - while SNSCrudPolicy includes all the necessary permissions, there is no way to attach it to the UserPool in a way to satisfy the requirement for the `SMSConfiguration` key

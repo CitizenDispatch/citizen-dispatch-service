@@ -1,0 +1,260 @@
+# Template for AWS SAM
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Citizen Dispatch - a platform for coordinating emergency response efforts among citizen volunteers.
+
+Parameters:
+  ClientS3BucketName:
+    Default: citizen-dispatch-sar
+    Type: String
+    Description: The bucket name to serve the client web application from
+  ResourcePrefix:
+    Default: citizen-dispatch-sar
+    Type: String
+    Description: The prefix for all resources created by this template.
+
+Resources:
+
+  QueryFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: .
+      Handler: server/handlers/query.handler
+      Runtime: nodejs8.10
+      Events:
+        Query:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /query
+            Method: post
+
+  ReportLocationFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: .
+      Handler: server/handlers/reportLocation.handler
+      Runtime: nodejs8.10
+      Events:
+        Query:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /reportLocation
+            Method: post
+
+  # This is the hacky monkey patch required because AWS SAM doesn't support static websites. A lambda has to copy over the web app client artifacts from a public bucket and inject the proper API endpoint. To make sure it happens, it has to run on a schedule.
+  CopyWebsiteFunction:
+    Type: AWS::Serverless::Function
+    Environment:
+      Variables:
+        TARGET_BUCKET: !Ref ClientS3BucketName
+    Properties:
+      CodeUri: server/handlers
+      Handler: copyWebsiteBucket.handler
+      Runtime: nodejs8.10
+    Policies:
+      S3CrudPolicy:
+        BucketName: !Ref ClientS3BucketName
+    Events:
+      Schedule:
+        Rate: (1 minute)
+        
+  # Not allowed in SAR
+  # SNSRole:
+  #   Type: "AWS::IAM::Role"
+  #   Properties:
+  #     AssumeRolePolicyDocument: 
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: "Allow"
+  #           Principal: 
+  #             Service: 
+  #               - "cognito-idp.amazonaws.com"
+  #           Action: 
+  #             - "sts:AssumeRole"
+  #     Policies:
+  #       - PolicyName: "CognitoSNSPolicy"
+  #         PolicyDocument: 
+  #           Version: "2012-10-17"
+  #           Statement: 
+  #             - Effect: "Allow"
+  #               Action: "sns:publish"
+  #               Resource: "*"
+
+  # This UserPool will not function as intended due to Serverless Application Repository constraints at time of publishing
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      # AutoVerifiedAttributes:
+      #   - phone_number
+      DeviceConfiguration: 
+        ChallengeRequiredOnNewDevice: true
+        DeviceOnlyRememberedOnUserPrompt: false
+      # MfaConfiguration: "ON"
+      Schema: 
+        - AttributeDataType: String
+          Mutable: true
+          Name: firstName
+        - AttributeDataType: String
+          Mutable: true
+          Name: lastName
+      SmsAuthenticationMessage: "CitizenDispatch: {####}"
+      # No way to do this with Serverless Application Repository policies?
+      # SmsConfiguration:
+      #   ExternalId: !Sub "${AWS::AccountId}"
+      #   SnsCallerArn: !GetAtt SNSRole.Arn
+      SmsVerificationMessage: "CitizenDispatch: {####}"
+      UsernameAttributes: 
+        - phone_number
+      UserPoolName: !Sub "${ResourcePrefix}-user-pool"
+
+  UserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      ClientName: !Sub "${ResourcePrefix}-app-client"
+      GenerateSecret: false
+      UserPoolId:
+        Ref: UserPool
+
+  RequestsTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Sub "${ResourcePrefix}-requests"
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  # Users: extra, frequently-changing information that AWS recommends is not kept as Cognito user attribute.
+  # latitude, longitude, locationTimestamp, firstName, lastName, teamId, dispatchId, identityVerifiedTimestamp, identityVerifiedById, isAdmin
+  UsersTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Sub "${ResourcePrefix}-users"
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  UserLocationsTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Sub "${ResourcePrefix}-userLocations"
+      AttributeDefinitions:
+        - AttributeName: id # username
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: N
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+  
+  DispatchesTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Sub "${ResourcePrefix}-dispatches"
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  # Missions are a mapping from a dispatch to a team to a request, and has a status.
+  # In future: more than one team, more than one request
+  MissionsTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Sub "${ResourcePrefix}-missions"
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  # A team is a collection of one or more users:
+  #   basic: a team has one leader, an active user that represents the team's location and contact information
+  #   basic: a team has a status: ready|busy|offline
+  #   extra: users can be active or not within a team  
+  TeamsTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Sub "${ResourcePrefix}-teams"
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1  
+
+  ############################
+  #### React Client ##########
+  ############################
+  StaticSite:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: 
+        Ref: ClientS3BucketName 
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+  # Not allowed per SAR
+  # StaticSiteS3BucketPolicy:
+  #   Type: AWS::S3::BucketPolicy
+  #   Properties:
+  #     Bucket:
+  #       Ref: StaticSite
+  #     PolicyDocument:
+  #       Statement:
+  #         - Sid: PublicReadGetObject
+  #           Effect: Allow
+  #           Principal: "*"
+  #           Action:
+  #           - s3:GetObject
+  #           Resource:
+  #             Fn::Join: [
+  #               "", [
+  #                 "arn:aws:s3:::",
+  #                 {
+  #                   "Ref": "StaticSite"
+  #                 },
+  #                 "/*"
+  #               ]
+  #             ]
+
+Outputs:
+
+    CitizenDispatchApi:
+      Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
+
+    QueryFunction:
+      Description: "GraphQL Query Lambda Function ARN"
+      Value: !GetAtt QueryFunction.Arn
