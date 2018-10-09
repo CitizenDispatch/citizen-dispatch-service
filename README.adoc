@@ -24,13 +24,13 @@ Good samaritans streamed in from all over. Among the most famous was the loosely
 
 Unfortunately, the volunteers faced a huge problem: coordination and sharing of information. 911 dispatch centers were more and more overwhelmed, with backlogs of hundreds of calls and dispatchers working grueling, high-stress 16-hour days. 
 
-Wayne Dailey waited for days for medical rescue for his wife, Casey, who was experiencing serious complications from recent surgery. He called 911 several times over 3 days, begging for help, but his call was mislabeled and misrouted. By the time he flagged down a passing Cajun Navy boat, it was too late: Casey died on the long journey to the hospital. 
+https://www.nytimes.com/interactive/2018/08/30/magazine/hurricane-harvey-houston-floods-texas-emergency.html[Wayne Dailey waited for days] for medical rescue for his wife, Casey, who was experiencing serious complications from recent surgery. He called 911 several times over 3 days, begging for help, but his call was mislabeled and misrouted. By the time he flagged down a passing Cajun Navy boat, it was too late: Casey died on the long journey to the hospital. 
 
 Blocks away from their house, rescuers had been idle, looking for someone they could help. If they had known that Casey was so close, they could have saved her life.
 
 This was only one heartbreaking story from that storm. Dozens of lives were lost because of the impaired flow of information among emergency responders and citizen volunteers. 
 
-During Harvey, the Cajun Navy pioneered the use of mobile apps to coordinate their activities: walkie-talkie app Zello and location-sharing app Glympse. Rescue groups fielded calls for help on Facebook and Whatsapp, a modern improvement over the slow, pace-of-conversation-bound 911 system. While these tools served a vital purpose, a platform dedicated for peer-to-peer emergency response would have reduced the friction and data loss inherent in a high-stress environment, but where a single lost data point could mean the death of a family, as happened on Sassine Street.
+During Harvey, the Cajun Navy pioneered the use of mobile apps to coordinate their activities: https://techcrunch.com/2017/09/10/zello-tops-us-app-store-as-the-walkie-talkie-for-hurricane-volunteers[walkie-talkie app Zello] and location-sharing app Glympse. Rescue groups fielded calls for help on Facebook and Whatsapp, a modern improvement over the slow, pace-of-conversation-bound 911 system. While these tools served a vital purpose, a platform dedicated for peer-to-peer emergency response would have reduced the friction and data loss inherent in a high-stress environment, but where a single lost data point could mean the death of a family, https://www.houstonchronicle.com/local/gray-matters/article/I-downloaded-an-app-And-suddenly-I-was-talking-12172506.php[as happened on Sassine Street].
 
 ## Enter Citizen Dispatch
 
@@ -48,7 +48,9 @@ CitizenDispatch is built around 3 tenets:
 
 ### Serverless Architecture
 
-Serverless architecture is perfectly suited to this use case. The publicly hosted application will be idle for most of the year, but must rapidly scale during natural disasters. The application maintains little long-term state, keeping cost to a minimum and making it viable for support by a non-profit organization. Cognito makes user authentication simple and low-maintenance, SNS allows easy worldwide usage, and GraphQL in Lambda will encourage integration with 3rd party applications and data producers.
+Serverless architecture is perfectly suited to this use case. The publicly hosted application will be idle for most of the year, but must rapidly scale during natural disasters. During Hurricane Harvey, https://techcrunch.com/2017/09/10/zello-tops-us-app-store-as-the-walkie-talkie-for-hurricane-volunteers[Zello specifically cited] the difficulties of scaling up to meet demand.
+
+The application maintains little long-term state, keeping cost to a minimum and making it viable for support by a non-profit organization. Cognito makes user authentication simple and low-maintenance, SNS allows easy worldwide usage, and GraphQL in Lambda will encourage integration with 3rd party applications and data producers.
 
 image::https://s3.amazonaws.com/citizen-dispatch-media/architecture-authentication.png[]
 
